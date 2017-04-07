@@ -9,20 +9,29 @@
 using namespace std;
 using namespace cv;
 
-void generateCode(char *code, Mat& codeShow, Mat& identifyingCode,int n);
+void generateCode(char *code, Mat& codeShow, Mat& identifyingCode);
 void splitCode(Mat& grayCode, Mat& identifyingCode, Mat& gray1, Mat& gray2, Mat& gray3, Mat& gray4, Mat& letter1, Mat& letter2, Mat& letter3, Mat& letter4);
 char getLetter(Mat& rio);
 void preProcess(Mat& image, Mat& gray,Mat& output);
+void generateTrainSet(char* trains);
 int main(){
+	/*生成训练集合*/
+	char trains[6000];//训练集 结构待定
+	generateTrainSet(trains);
+
+#if DOTEST
+	/*生成测试集*/
 	Mat Background(window_height, window_width, CV_8UC3, Scalar(192, 192, 192));
 	int n = 0;
+	//Background为集成显示的图像，n为第n+1个测试验证码
+
 	do{
 		Mat identifyingCode(code_height, code_width, CV_8UC3, Scalar(255, 255, 255));
 		Mat codeShow(code_height, code_width, CV_8UC3, Scalar(255, 255, 255));
 		char code[5];
 		int start = 0;
 		//生成并显示待验证的验证码图片
-		generateCode(code, codeShow,identifyingCode,n);
+		generateCode(code, codeShow,identifyingCode);
 		Mat imageRIO1;
 		ADDRIO(imageRIO1,Background, code_width, n, start);
 		identifyingCode.copyTo(imageRIO1);
@@ -71,8 +80,9 @@ int main(){
 			for (int j = 0; j < 10000; j++);
 		}
 	} while (++n<N);
+
 	namedWindow("MainWindow", 1);
 	imshow("MainWindow",Background);
+#endif
 	waitKey();
-	
 }

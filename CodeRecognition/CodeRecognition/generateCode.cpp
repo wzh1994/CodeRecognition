@@ -10,6 +10,8 @@
 
 using namespace std;
 using namespace cv;
+void preProcess(Mat& image, Mat& gray);
+void splitCode(Mat& grayCode, Mat& gray1, Mat& gray2, Mat& gray3, Mat& gray4);
 
 char characters[56] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'j', 'k', 'n', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z' };
 int zt[5] = {0,2,3,4,5};
@@ -18,7 +20,7 @@ static Scalar randomColor(RNG& rng)
 	int icolor = (unsigned)rng;
 	return Scalar(icolor & 255, (icolor >> 8) & 255, (icolor >> 16) & 255);
 }
-void generateCode(char *code, Mat& codeShow, Mat& identifyingCode,int n){
+void generateCode(char *code, Mat& codeShow, Mat& identifyingCode){
 	int lineType = 8;
 	RNG rng(GetTickCount());
 	//验证码背景
@@ -65,9 +67,50 @@ void generateCode(char *code, Mat& codeShow, Mat& identifyingCode,int n){
 	}
 
 	//生成验证码文字图片
-
-	putText(codeShow, code, Point2d(0, 4*code_height/5), 4,
-		1.3, Scalar(0,0,0), 2, 8);
+	if (codeShow.data){
+		putText(codeShow, code, Point2d(0, 4 * code_height / 5), 4,
+			1.3, Scalar(0, 0, 0), 2, 8);
+	}
 		
 	cout << code<<endl;
+}
+void generateCode(char *code, Mat& identifyingCode){
+	generateCode(code, Mat(), identifyingCode);
+}
+
+
+//生成训练集
+void generateTrainSet(char* trains){
+#if NOFRESH
+	if (freopen("train", "r", stdin) != NULL){
+
+	}
+	else{
+#endif
+		freopen("train", "w", stdout);
+		char code[5];
+
+		//生成验证码
+		Mat identifyingCode(code_height, code_width, CV_8UC3,Scalar(0,0,0));
+		generateCode(code, identifyingCode);
+		imshow("win1",identifyingCode);
+
+		//预处理
+		Mat gray(code_height, code_width, CV_8UC1);
+		preProcess(identifyingCode, gray);
+		imshow("win2", gray);
+		freopen("CON", "w", stdout);
+
+		//分割
+		Mat grayLetter1(code_height,letter_width,CV_8UC1);
+		Mat grayLetter2(code_height, letter_width, CV_8UC1);
+		Mat grayLetter3(code_height, letter_width, CV_8UC1);
+		Mat grayLetter4(code_height, letter_width, CV_8UC1);
+		splitCode(gray, grayLetter1, grayLetter2, grayLetter3, grayLetter4);
+		
+		//特征提取
+
+#if NOFRESH
+	}
+#endif
 }
