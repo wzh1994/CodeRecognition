@@ -48,6 +48,16 @@ void generateCode(char *code, Mat& codeShow, Mat& identifyingCode){
 			}
 		}
 	}
+#if Lines
+	//干扰线
+	int lineNumber = rng.uniform(5,9);
+	while (lineNumber--){
+		ellipse(identifyingCode,
+			Point(rng.uniform(-10, code_width + 10), rng.uniform(-10, code_height + 10)),
+			Size(rng.uniform(code_width / 2, code_width), rng.uniform(code_height / 3, code_height)),
+			rng.uniform(-90, 90), 0, 360, Scalar(rng.uniform(0, 255), rng.uniform(0, 255), rng.uniform(0, 255)), 1, 8);
+	}
+#endif
 	Point org;
 	//验证码的x轴位置
 	int x[4];
@@ -78,12 +88,11 @@ void generateCode(char *code, Mat& identifyingCode){
 	generateCode(code, Mat(), identifyingCode);
 }
 
-
 //生成训练集
 void generateTrainSet(char* trains){
 #if NOFRESH
 	if (freopen("train", "r", stdin) != NULL){
-
+	
 	}
 	else{
 #endif
@@ -91,14 +100,12 @@ void generateTrainSet(char* trains){
 		char code[5];
 
 		//生成验证码
-		Mat identifyingCode(code_height, code_width, CV_8UC3,Scalar(0,0,0));
+		Mat identifyingCode(code_height, code_width, CV_8UC3,Scalar(255,255,255));
 		generateCode(code, identifyingCode);
-		imshow("win1",identifyingCode);
 
 		//预处理
 		Mat gray(code_height, code_width, CV_8UC1);
 		preProcess(identifyingCode, gray);
-		imshow("win2", gray);
 		freopen("CON", "w", stdout);
 
 		//分割

@@ -21,11 +21,44 @@ void preProcess(Mat& image, Mat& gray, Mat& output){
 	uchar* p,*q;
 	p = hist.ptr<uchar>(0);
 	q = lut.ptr<uchar>(0);
+#if MaxFourColor
+	int colorFre[5] = {0,0,0,0,0};
+#endif
 	for (i = 0; i < 256; i++)
 	{
 		int fre=cvRound(hist.at<float>(i));
-		q[i] = fre < 25 ? 0 :fre>1000?0: 255;
+		q[i] = fre < 75 ? 0 :fre>1000?0: 255;
+#if MaxFourColor
+		if (fre>colorFre[0]){
+			colorFre[4] = colorFre[3];
+			colorFre[3] = colorFre[2];
+			colorFre[2] = colorFre[1];
+			colorFre[1] = colorFre[0];
+			colorFre[0] = fre;
+		}
+		else if (fre > colorFre[1]){
+			colorFre[4] = colorFre[3];
+			colorFre[3] = colorFre[2];
+			colorFre[2] = colorFre[1];
+			colorFre[1] = fre;
+		}
+		else if (fre > colorFre[2]){
+			colorFre[4] = colorFre[3];
+			colorFre[3] = colorFre[2];
+			colorFre[2] = fre;
+		}
+		else if (fre > colorFre[3]){
+			colorFre[4] = colorFre[3];
+			colorFre[3] = fre;
+		}
+		else if (fre > colorFre[4]){
+			colorFre[4] = fre;
+		}
+#endif
 	}
+#if MaxFourColor
+	cout << colorFre[1] << " " << colorFre[2] << " " << colorFre[3] << " " << colorFre[4] << endl;
+#endif
 	LUT(gray, lut, gray);
 	
 	//开运算 2*2的矩形掩码
@@ -56,6 +89,7 @@ bool SortByX(const vector<Point> &v1, const vector<Point> &v2)//注意：本函数的参
 	return v1[0].x < v2[0].x;//升序排列  
 }
 
+//分割图像，gray是未调整大小的单通道灰度图，用于特征提取；letter是调整了大小的三通道图，用于显示
 void splitCode(Mat& grayCode, Mat& identifyingCode, Mat& gray1, Mat& gray2, Mat& gray3, Mat& gray4, Mat& letter1, Mat& letter2, Mat& letter3, Mat& letter4){
 	//轮廓查找 因为寻找轮廓时候会对原图造成影响，故需要备份
 	vector<vector<Point>>contours;
@@ -77,20 +111,23 @@ void splitCode(Mat& grayCode, Mat& identifyingCode, Mat& gray1, Mat& gray2, Mat&
 	}
 	//各个轮廓的最小包围矩形
 	Mat gray[4] = { gray1, gray2, gray3, gray4 };
-	int j = 0;
-	for (vector<vector<Point>>::iterator i = contours.begin(); i != contours.end(); i++){
+	vector<vector<Point>> fill;
+	for (vector<vector<Point>>::iterator i = contours.begin(); i != contours.end();){
 		Rect r = boundingRect(Mat(*i));
 		Mat temp = grayCode(r);
 #if DotSizeShow
-		cout << temp.cols*temp.rows << " ";
+		cout <<i-contours.begin()<<":"<< temp.cols*temp.rows << " ";
 #endif
 		//去除小的椒盐噪声和i,j上面的点的干扰 (*i).size是边框中角点的个数,所以要求面积
-		if (temp.cols*temp.rows < 90) {
+		if (temp.cols*temp.rows < 100) {
+			fill.push_back(*i);
 			i=contours.erase(i);
-			i--;
 			continue;
 		}
-		resize(temp, gray[j++], Size(letter_width, code_height), 0, 0);
+		//防止i==contours.begin()时越界出错
+		else{
+			i++;
+		}
 		if (identifyingCode.data){
 			rectangle(identifyingCode, r, Scalar(0, 255, 0), 1);
 		}
@@ -98,6 +135,19 @@ void splitCode(Mat& grayCode, Mat& identifyingCode, Mat& gray1, Mat& gray2, Mat&
 #if DotSizeShow
 	cout << endl;
 #endif
+	//用背景色填充灰度图的小区域
+	drawContours(grayCode, fill, -1, 0, -1);
+
+	//提取字符区域
+	int j = 0;
+	Mat temp[4];
+	for (vector<vector<Point>>::iterator i = contours.begin(); i != contours.end();i++){
+		Rect r = boundingRect(Mat(*i));
+		temp[i - contours.begin()] = grayCode(r);
+		temp[i - contours.begin()].copyTo(gray[i - contours.begin()]);
+		resize(temp[i - contours.begin()], temp[i - contours.begin()], Size(letter_width, code_height), 0, 0);
+		//resize(temp, gray[j++], Size(), fr, fr);
+	}
 
 	//复制到3通道图以显示
 	if (letter1.data){
@@ -106,7 +156,7 @@ void splitCode(Mat& grayCode, Mat& identifyingCode, Mat& gray1, Mat& gray2, Mat&
 		int col = gray1.cols;
 		for (int i = 0; i < 4; i++){
 			for (int j = 0; j < row; j++){
-				uchar *p = gray[i].ptr<uchar>(j);
+				uchar *p = temp[i].ptr<uchar>(j);
 				uchar *q = letter[i].ptr<uchar>(j);
 				for (int k = 0; k < col; k++){
 					q[3 * k] = q[3 * k + 1] = q[3 * k + 2] = p[k];
