@@ -11,16 +11,16 @@
 using namespace std;
 using namespace cv;
 void preProcess(Mat& image, Mat& gray);
-void splitCode(Mat& grayCode, Mat& gray1, Mat& gray2, Mat& gray3, Mat& gray4);
+void splitCode(Mat& grayCode, double pt[][Patterns]);
 
-char characters[56] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'j', 'k', 'n', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'J', 'K', 'L', 'M', 'N', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z' };
+char characters[58] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'j', 'k', 'n', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H','I', 'J', 'K', 'L', 'M', 'N','O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z' };
 int zt[5] = {0,2,3,4,5};
 static Scalar randomColor(RNG& rng)
 {
 	int icolor = (unsigned)rng;
 	return Scalar(icolor & 255, (icolor >> 8) & 255, (icolor >> 16) & 255);
 }
-void generateCode(char *code, Mat& codeShow, Mat& identifyingCode){
+void generateCode(char *code, Mat& codeShow, Mat& identifyingCode,int* lables){
 	int lineType = 8;
 	RNG rng(GetTickCount());
 	//验证码背景
@@ -67,7 +67,9 @@ void generateCode(char *code, Mat& codeShow, Mat& identifyingCode){
 	x[3] = rng.uniform(x[2] + code_width / 5, code_width * 3 / 4);
 	//生成待识别的验证码图片
 	for (int i = 0; i < 4; i++){
-		code[i] = characters[rng.uniform(0, 56)];
+		int temp = rng.uniform(0, 58);
+		if (lables) lables[i] = temp;
+		code[i] = characters[temp];
 		code[i + 1] = '\0';
 		string ccode(code+i);
 		org.x = x[i];
@@ -82,40 +84,52 @@ void generateCode(char *code, Mat& codeShow, Mat& identifyingCode){
 			1.3, Scalar(0, 0, 0), 2, 8);
 	}
 		
-	cout << code<<endl;
+	//cout << code<<endl;
 }
-void generateCode(char *code, Mat& identifyingCode){
-	generateCode(code, Mat(), identifyingCode);
+void generateCode(char *code, Mat& identifyingCode,int* lables){
+	generateCode(code, Mat(), identifyingCode,lables);
+}
+void generateCode(char *code, Mat& codeShow, Mat& identifyingCode){
+	generateCode(code, codeShow, identifyingCode, NULL);
 }
 
 //生成训练集
-void generateTrainSet(char* trains){
+void generateTrainSet(double trainSet[][Patterns], int* lables){
 #if NOFRESH
 	if (freopen("train", "r", stdin) != NULL){
-	
+		for (int i=0;i<TrainSize;i++){
+			for (int j=0;j<Patterns;j++){
+				cin>>trainSet[i][j];
+			}
+			cin >> lables[i];
+		}
+		freopen("CON", "r", stdin);
 	}
 	else{
 #endif
 		freopen("train", "w", stdout);
 		char code[5];
+		int n = TrainSize/4;
+		for (int i = 0; i < n; i++){
+			//生成验证码
+			Mat identifyingCode(code_height, code_width, CV_8UC3, Scalar(255, 255, 255));
+			generateCode(code, identifyingCode, lables+i*4);
 
-		//生成验证码
-		Mat identifyingCode(code_height, code_width, CV_8UC3,Scalar(255,255,255));
-		generateCode(code, identifyingCode);
+			//预处理
+			Mat gray(code_height, code_width, CV_8UC1);
+			preProcess(identifyingCode, gray);
+			
 
-		//预处理
-		Mat gray(code_height, code_width, CV_8UC1);
-		preProcess(identifyingCode, gray);
+			//分割和提取特征
+			splitCode(gray, trainSet+i*4);
+			for (int j = 0; j < 4; j++){
+				for (int k = 0; k < Patterns; k++){
+					cout << trainSet[i * 4 + j][k] << " ";
+				}
+				cout << lables[i*4+j] << endl;
+			}
+		}
 		freopen("CON", "w", stdout);
-
-		//分割
-		Mat grayLetter1(code_height,letter_width,CV_8UC1);
-		Mat grayLetter2(code_height, letter_width, CV_8UC1);
-		Mat grayLetter3(code_height, letter_width, CV_8UC1);
-		Mat grayLetter4(code_height, letter_width, CV_8UC1);
-		splitCode(gray, grayLetter1, grayLetter2, grayLetter3, grayLetter4);
-		
-		//特征提取
 
 #if NOFRESH
 	}

@@ -1,7 +1,8 @@
 //训练参数控制
 #define K 100  //KNN的K
 #define N 5   //测试样本的个数
-#define TrainSize 6000 //训练样本的个数，必须为4的倍数
+#define TrainSize 100 //训练样本的个数，必须为4的倍数
+#define Patterns 7	   //提取的特征个数
 
 //验证码相关
 #define Lines 1		//是否加入干扰线
@@ -21,11 +22,12 @@
 //输出控制
 #define DotSizeShow 0	  //是否输出每个字符的面积
 #define MaxFourColor 0	  //是否输出最多的四种颜色的频率
+#define PatternShow	0	  //是否输出提取到的特征
 
 //创建一个兴趣区以便填充要显示的字符
 #define ADDRIO(_dst,_image,_width,_n,_start) do{\
 	_start += gap;\
-	_dst=_image(Range(gap * _n + gap + _n*code_height, (_n + 1)*(code_height + gap)), Range(_start, _start + _width)); \
-	_start += _width;\
+	_dst=_image(Range(gap * ((_n)+2) + ((_n)+1)*code_height, ((_n) + 2)*(code_height + gap)), Range((_start), (_start) + (_width))); \
+	_start += (_width);\
 }while (0)
 
