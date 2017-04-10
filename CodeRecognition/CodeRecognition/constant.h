@@ -1,12 +1,20 @@
 //训练参数控制
-#define K 100  //KNN的K
-#define TrainSize 3000 //训练样本的个数，必须为4的倍数
+#define K 300            //KNN的K，必须小于KNN_N
+#define KNN_N     20000  //KNN使用的训练集,必须小于TrainSize
+#define TrainSize 1000000 //训练样本的个数，必须为4的倍数
 #define TestSize 10     //测试样本的个数
 #define Patterns 8	   //提取的特征个数
 #define Standardize 1   //标准化
 #define ZScore 0	    //新数据=（原数据-均值）/标准差
 #define MinMax 1       //新数据=（原数据-极小值）/（极大值-极小值）
 #define Decimal_Scaling // x'=x/(10*j)
+#define WindowSize 4    //3或者4
+
+#if WindowSize==3
+#define ParzenSize 6561
+#elif WindowSize==4
+#define ParzenSize 65536
+#endif
 
 
 //验证码相关
@@ -23,14 +31,14 @@
 #if FontComplax==1
 #define FontNum 2   //验证码的字符数量
 #elif FontComplax==2
-#define FontNum 10
+#define FontNum 3
 #elif FontComplax==3
-#define FontNum 58 
+#define FontNum 5
 #endif
 
 
 //训练&测试
-#define NOFRESH 1	//使用已经生成好的训练集
+#define NOFRESH 0	//使用已经生成好的训练集
 #define DOTEST 1	//生成测试集并测试
 
 /*边框大小参数*/
@@ -48,6 +56,8 @@
 #define ShowTestPattern 0  //输出测试集的特征
 #define ShowSecondNormal 0 //输出第二范数
 #define ShowTopK 0		   //显示前K多个字符
+#define showParzen 0       //显示parzen窗的后验概率
+#define showResult 0       //显示结果
 
 //创建一个兴趣区以便填充要显示的字符
 #define ADDRIO(_dst,_image,_width,_n,_start) do{\

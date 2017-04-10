@@ -28,15 +28,15 @@ int zt[FontNum] = {3,4};
 #elif FontComplax==3
 int zt[FontNum] = {0,2,3,4,5};  
 #endif
-
+extern RNG rng;
 static Scalar randomColor(RNG& rng)
 {
 	int icolor = (unsigned)rng;
 	return Scalar(icolor & 255, (icolor >> 8) & 255, (icolor >> 16) & 255);
 }
-void generateCode(char *code, Mat& codeShow, Mat& identifyingCode,int* lables){
+void generateCode(char *code, Mat& codeShow, Mat& identifyingCode, int* lables){
 	int lineType = 8;
-	RNG rng(GetTickCount());
+	
 	//验证码背景
 	int channels = identifyingCode.channels();
 	int nRows = identifyingCode.rows ;
@@ -144,15 +144,8 @@ void generateTrainSet(double trainSet[][Patterns], int* lables, PTArgs ptArg){
 			//分割和提取特征
 			if (!splitCode(gray, trainSet + i * 4)){
 				i--;
-				for (int j = 0; j < 2000; j++){
-					for (int k = 0; k < 2000; k++);
-				}
 				continue;
 			}
-			for (int j = 0; j < 2000; j++){
-				for (int k = 0; k < 2000; k++);
-			}
-			
 		}
 		//计算每一列的均值和最大，最小值
 		for (int i = 0; i < TrainSize; i++){
@@ -204,15 +197,11 @@ void generateTrainSet(double trainSet[][Patterns], int* lables, PTArgs ptArg){
 		for (int i = 0; i < Patterns; i++){
 			cout << ptArg->means[i] << " " << ptArg->sDeviation[i] << " " << ptArg->maxPattern[i] << " " << ptArg->minPattern[i] << " " << ptArg->scalePattern[i] << endl;
 		}
-		for (int k = 0; k < LetterNum; k++){
-			for (int i = 0; i < TrainSize; i++){
-				if (lables[i] == k){
-					for (int j = 0; j < Patterns; j++){
-						cout << trainSet[i][j] << " ";
-					}
-					cout << lables[i] << endl;
-				}
+		for (int i = 0; i < TrainSize; i++){
+			for (int j = 0; j < Patterns; j++){
+				cout << trainSet[i][j] << " ";
 			}
+			cout << lables[i] << endl;
 		}
 		freopen("CON", "w", stdout);
 #if NOFRESH

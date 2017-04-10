@@ -14,6 +14,7 @@ using namespace cv;
 
 void calcPattern(Mat& grayCode, vector<Point> contours, double* pt);
 char knn(double* pt, double trainSet[][Patterns], int* lables);
+char parzen(double* pt);
 
 //预处理，灰度图用于后续处理，output为三通道图用于显示
 void preProcess(Mat& image, Mat& gray, Mat& output){
@@ -257,7 +258,7 @@ void showPatterns(double* pt){
 	cout << endl;
 }
 
-char getLetter(double* pt, double trainSet[][Patterns], int* lables, PTArgs ptArg){
+int getLetter(double* pt, double trainSet[][Patterns], int* lables, PTArgs ptArg){
 #if ShowTestPattern
 	showPatterns(pt);
 #endif
@@ -278,6 +279,11 @@ char getLetter(double* pt, double trainSet[][Patterns], int* lables, PTArgs ptAr
 #endif
 	//KNN
 	char knn_result = knn(pt, trainSet, lables);
-
-	return knn_result;
+	char parzen_result = parzen(pt);
+	int result = knn_result;
+	result = (result << 8) + (int)parzen_result;
+#if showResult
+	cout << result/256<<" "<<result%256<<endl;
+#endif
+	return result;
 }
