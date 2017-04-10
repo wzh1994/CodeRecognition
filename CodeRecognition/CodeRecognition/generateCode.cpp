@@ -114,7 +114,7 @@ void generateTrainSet(double trainSet[][Patterns], int* lables, PTArgs ptArg){
 		for (int i=0;i<Patterns;i++){
 			cin>>ptArg->means[i]>>ptArg->sDeviation[i]>>ptArg->maxPattern[i] >> ptArg->minPattern[i]>>ptArg->scalePattern[i];
 		}
-		for (int i=0;i<TrainSize;i++){
+		for (int i = 0; i<KNN_N; i++){
 			for (int j=0;j<Patterns;j++){
 				cin>>trainSet[i][j];
 			}
@@ -197,7 +197,7 @@ void generateTrainSet(double trainSet[][Patterns], int* lables, PTArgs ptArg){
 		for (int i = 0; i < Patterns; i++){
 			cout << ptArg->means[i] << " " << ptArg->sDeviation[i] << " " << ptArg->maxPattern[i] << " " << ptArg->minPattern[i] << " " << ptArg->scalePattern[i] << endl;
 		}
-		for (int i = 0; i < TrainSize; i++){
+		for (int i = 0; i < KNN_N; i++){
 			for (int j = 0; j < Patterns; j++){
 				cout << trainSet[i][j] << " ";
 			}

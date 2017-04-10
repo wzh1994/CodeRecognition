@@ -109,9 +109,10 @@ void generateParzenArgs(double trainSet[][Patterns],int* lables){
 		for (int i = 0; i<LetterNum; i++){
 			cin >> priorProbability[i];
 		}
-		for (int i = 0; i<ParzenSize; i++){
+		int line;
+		while (~scanf("%d",&line)){
 			for (int j = 0; j<LetterNum; j++){
-				cin >> parzenProbability[i][j];
+				cin >> parzenProbability[line][j];
 			}
 		}
 		freopen("CON", "r", stdin);
@@ -130,11 +131,18 @@ void generateParzenArgs(double trainSet[][Patterns],int* lables){
 		}
 		cout << endl;
 		for (int i = 0; i < ParzenSize; i++){
+			int flag = 0;
 			for (int j = 0; j < LetterNum; j++){
 				parzenProbability[i][j] /= TrainSize;
-				cout << parzenProbability[i][j] << " ";
+				if (parzenProbability[i][j] != 0) flag = 1;
 			}
-			cout << endl;
+			if (flag){
+				cout << i << " ";
+				for (int j = 0; j < LetterNum; j++){
+					cout << parzenProbability[i][j] << " ";
+				}
+				cout << endl;
+			}
 		}
 		freopen("CON", "w", stdout);
 #if NOFRESH

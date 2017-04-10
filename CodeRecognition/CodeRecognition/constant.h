@@ -38,7 +38,7 @@
 
 
 //训练&测试
-#define NOFRESH 0	//使用已经生成好的训练集
+#define NOFRESH 1	//使用已经生成好的训练集
 #define DOTEST 1	//生成测试集并测试
 
 /*边框大小参数*/
