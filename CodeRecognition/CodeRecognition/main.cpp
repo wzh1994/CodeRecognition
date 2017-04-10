@@ -11,20 +11,18 @@ using namespace cv;
 
 void generateCode(char *code, Mat& codeShow, Mat& identifyingCode);
 int splitCode(Mat& grayCode, Mat& identifyingCode, double pt[][Patterns],Mat& letter1, Mat& letter2, Mat& letter3, Mat& letter4);
-char getLetter(double* pt, double trainSet[][Patterns], int* lables, double *means, double * sDeviation);
+char getLetter(double* pt, double trainSet[][Patterns], int* lables, PTArgs ptArg);
 void preProcess(Mat& image, Mat& gray,Mat& output);
-void generateTrainSet(double trainSet[][Patterns], int* lables, double * means, double * sDeviation);
+void generateTrainSet(double trainSet[][Patterns], int* lables, PTArgs ptArg);
 void showPatterns(double* pt);
 void makeTitle(Mat& Background);
 int main(){
 	/*生成训练集合*/
 	double trainSet[TrainSize][Patterns]; //训练集
 	int lables[TrainSize];				  //标签集
-	double means[Patterns];				  //特征均值
-	double sDeviation[Patterns];		  //特征标准差
-	memset(means, 0, sizeof(means));
-	memset(sDeviation, 0, sizeof(sDeviation));
-	generateTrainSet(trainSet, lables, means, sDeviation);
+	PTArgsNode ptArg;
+
+	generateTrainSet(trainSet, lables, &ptArg);
 
 #if DOTEST
 	/*生成测试集*/
@@ -66,28 +64,10 @@ int main(){
 		Mat imageRIO7;
 		ADDRIO(imageRIO7, Background, code_width, n, start);
 		char result[5];
-#if ShowTestPattern
-		showPatterns(pt[0]);
-#endif
-		result[0] = getLetter(pt[0], trainSet, lables, means, sDeviation);
-#if ShowTestPattern
-		showPatterns(pt[0]);
-		showPatterns(pt[1]);
-#endif
-		result[1] = getLetter(pt[1], trainSet, lables, means, sDeviation);
-#if ShowTestPattern
-		showPatterns(pt[1]);
-		showPatterns(pt[2]);
-#endif
-		result[2] = getLetter(pt[2], trainSet, lables, means, sDeviation);
-#if ShowTestPattern
-		showPatterns(pt[2]);
-		showPatterns(pt[3]);
-#endif
-		result[3] = getLetter(pt[3], trainSet, lables, means, sDeviation);
-#if ShowTestPattern
-		showPatterns(pt[3]);
-#endif
+		result[0] = getLetter(pt[0], trainSet, lables, &ptArg);
+		result[1] = getLetter(pt[1], trainSet, lables, &ptArg);
+		result[2] = getLetter(pt[2], trainSet, lables, &ptArg);
+		result[3] = getLetter(pt[3], trainSet, lables, &ptArg);
 		result[4] = '\0';
 
 		//显示识别结果
@@ -130,11 +110,4 @@ void makeTitle(Mat& Background){
 	ADDRIO(rio5, Background, code_width, -1, start);
 	putText(rio5, "Code", Point2d(0, 4 * code_height / 5), 4,
 		1, Scalar(0, 0, 0), 1, 8);
-}
-
-void showPatterns(double* pt){
-	for (int i = 0; i < Patterns; i++){
-		cout << pt[i]<<" ";
-	}
-	cout << endl;
 }

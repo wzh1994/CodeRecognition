@@ -195,12 +195,13 @@ void calcPattern(Mat& grayCode, vector<Point> contours, double* pt){
 	//计算矩
 	Moments mu = moments(contours, false);
 	pt[n++] = mu.m00;	//特征1:轮廓面积
-	pt[n++] = mu.mu11;  //特征2:中心矩
-	pt[n++] = arcLength(contours, true); //特征3：轮廓长度
+	pt[n++] = arcLength(contours, true); //特征2：轮廓长度
+	pt[n++] = grayCode.cols;  //特征3:字符宽度
+	pt[n++] = grayCode.rows;  //特征4:字符图高度
 	double hu[8] = { 0 };
 	HuMoments(mu, hu);
-	pt[n++] = hu[0];  //特征4：hu矩1
-	pt[n++] = hu[1];  //特征5：hu矩2
+	pt[n++] = hu[0];  //特征5：hu矩1
+	pt[n++] = hu[1];  //特征6：hu矩2
 
 	//直方图计算
 	int col = grayCode.cols;
@@ -230,7 +231,8 @@ void calcPattern(Mat& grayCode, vector<Point> contours, double* pt){
 	for (int i = 0; i < row; i++){
 		accum += (rowHist[i] - ave)*(rowHist[i] - ave);
 	}
-	pt[n++] = sqrt(accum);  //特征6：水平分布直方图标准差
+	accum /= row;
+	pt[n++] = sqrt(accum);  //特征7：水平分布直方图标准差
 
 	//垂直分布直方图方差
 	sum = 0;
@@ -243,15 +245,36 @@ void calcPattern(Mat& grayCode, vector<Point> contours, double* pt){
 	for (int j = 0; j < col; j++){
 		accum += (colHist[j] - ave)*(colHist[j] - ave);
 	}
-	pt[n++] = sqrt(accum);  //特征7：水平分布直方图标准差
+	accum /= col;
+	pt[n++] = sqrt(accum);  //特征8：水平分布直方图标准差
 	
 }
 
-char getLetter(double* pt, double trainSet[][Patterns], int* lables, double *means, double * sDeviation){
-#if Standardize
+void showPatterns(double* pt){
 	for (int i = 0; i < Patterns; i++){
-		pt[i] = (pt[i] - means[i]) / sDeviation[i];
+		cout << pt[i] << " ";
 	}
+	cout << endl;
+}
+
+char getLetter(double* pt, double trainSet[][Patterns], int* lables, PTArgs ptArg){
+#if ShowTestPattern
+	showPatterns(pt);
+#endif
+#if Standardize
+#if ZScore
+	for (int i = 0; i < Patterns; i++){
+		pt[i] = (pt[i] - ptArg->means[i]) / ptArg->sDeviation[i];
+	}
+#endif
+#if MinMax
+	for (int i = 0; i < Patterns; i++){
+		pt[i] = (pt[i] - ptArg->minPattern[i]) / (ptArg->maxPattern[i] - ptArg->minPattern[i]);
+	}
+#endif
+#if ShowTestPattern
+	showPatterns(pt);
+#endif
 #endif
 	//KNN
 	char knn_result = knn(pt, trainSet, lables);

@@ -14,9 +14,21 @@ using namespace std;
 using namespace cv;
 void preProcess(Mat& image, Mat& gray);
 int splitCode(Mat& grayCode, double pt[][Patterns]);
+#if Complax==1
+char characters[LetterNum] = { '0', '1' };
+#elif Complax==2
+char characters[LetterNum] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'};
+#elif Complax==3
+char characters[LetterNum] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'j', 'k', 'n', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z' };
+#endif
+#if FontComplax==1
+int zt[FontNum] = { 4 };
+#elif FontComplax==2
+int zt[FontNum] = {3,4};  
+#elif FontComplax==3
+int zt[FontNum] = {0,2,3,4,5};  
+#endif
 
-char characters[58] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'j', 'k', 'n', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H','I', 'J', 'K', 'L', 'M', 'N','O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z' };
-int zt[5] = {0,2,3,4,5};  //五种字体
 static Scalar randomColor(RNG& rng)
 {
 	int icolor = (unsigned)rng;
@@ -69,7 +81,7 @@ void generateCode(char *code, Mat& codeShow, Mat& identifyingCode,int* lables){
 	x[3] = rng.uniform(x[2] + code_width / 5, code_width * 3 / 4);
 	//生成待识别的验证码图片
 	for (int i = 0; i < 4; i++){
-		int temp = rng.uniform(0, 58);
+		int temp = rng.uniform(0, LetterNum);
 		if (lables) lables[i] = temp;
 		code[i] = characters[temp];
 		code[i + 1] = '\0';
@@ -96,11 +108,11 @@ void generateCode(char *code, Mat& codeShow, Mat& identifyingCode){
 }
 
 //生成训练集
-void generateTrainSet(double trainSet[][Patterns], int* lables, double * means, double * sDeviation){
+void generateTrainSet(double trainSet[][Patterns], int* lables, PTArgs ptArg){
 #if NOFRESH
 	if (freopen("train", "r", stdin) != NULL){
 		for (int i=0;i<Patterns;i++){
-			cin>>means[i]>>sDeviation[i];
+			cin>>ptArg->means[i]>>ptArg->sDeviation[i]>>ptArg->maxPattern[i] >> ptArg->minPattern[i]>>ptArg->scalePattern[i];
 		}
 		for (int i=0;i<TrainSize;i++){
 			for (int j=0;j<Patterns;j++){
@@ -113,6 +125,12 @@ void generateTrainSet(double trainSet[][Patterns], int* lables, double * means, 
 	else{
 #endif
 		freopen("train", "w", stdout);
+		memset(ptArg->means, 0, sizeof(ptArg->means));
+		memset(ptArg->sDeviation, 0, sizeof(ptArg->sDeviation));
+		for (int i = 0; i < Patterns; i++){
+			ptArg->maxPattern[i] = -100000000;
+			ptArg->minPattern[i] = 100000000;
+		}
 		char code[5];
 		int n = TrainSize/4;
 		for (int i = 0; i < n; i++){
@@ -136,42 +154,65 @@ void generateTrainSet(double trainSet[][Patterns], int* lables, double * means, 
 			}
 			
 		}
-		//计算每一列的均值和标准差
+		//计算每一列的均值和最大，最小值
 		for (int i = 0; i < TrainSize; i++){
 			for (int j = 0; j < Patterns; j++){
-				means[j] += trainSet[i][j];
+				ptArg->means[j] += trainSet[i][j];
+				if (trainSet[i][j]>ptArg->maxPattern[j]) ptArg->maxPattern[j] = trainSet[i][j];
+				else if (trainSet[i][j]<ptArg->minPattern[j]) ptArg->minPattern[j] = trainSet[i][j];
+
 			}
 		}
 		for (int i = 0; i < Patterns; i++){
-			means[i] = means[i]/ TrainSize;
+			ptArg->means[i] = ptArg->means[i] / TrainSize;
 		}
 		//计算每一列的标准差
 		for (int i = 0; i < TrainSize; i++){
 			for (int j = 0; j < Patterns; j++){
-				sDeviation[j] += (trainSet[i][j] - means[j])*(trainSet[i][j] - means[j]);
+				ptArg->sDeviation[j] += (trainSet[i][j] - ptArg->means[j])*(trainSet[i][j] - ptArg->means[j]);
 			}
 		}
 		for (int i = 0; i < Patterns; i++){
-			sDeviation[i] = sqrt(sDeviation[i]);
+			ptArg->sDeviation[i] = sqrt(ptArg->sDeviation[i]/TrainSize);
+		}
+		//计算每一列的量级
+		for (int i = 0; i < Patterns; i++){
+			double max = abs(ptArg->maxPattern[i]);
+			double min = abs(ptArg->minPattern[i]);
+			ptArg->scalePattern[i] = (abs(max)>abs(min) ? max : min);
 		}
 #if	Standardize
 		//列向量归一化
+#if ZScore
+		//Z-Score法则
 		for (int i = 0; i < TrainSize; i++){
 			for (int j = 0; j < Patterns; j++){
-				trainSet[i][j] = (trainSet[i][j] - means[j]) / sDeviation[j];
+				trainSet[i][j] = (trainSet[i][j] - ptArg->means[j]) / ptArg->sDeviation[j];
 			}
 		}
 #endif
+#if MinMax
+		//Max-min法则
+		for (int i = 0; i < TrainSize; i++){
+			for (int j = 0; j < Patterns; j++){
+				trainSet[i][j] = (trainSet[i][j] - ptArg->minPattern[j]) / (ptArg->maxPattern[j] - ptArg->minPattern[j]);
+			}
+		}
+#endif
+#endif
 		//输出到文件
 		for (int i = 0; i < Patterns; i++){
-			cout << means[i]<<" "<<sDeviation[i] << " ";
+			cout << ptArg->means[i] << " " << ptArg->sDeviation[i] << " " << ptArg->maxPattern[i] << " " << ptArg->minPattern[i] << " " << ptArg->scalePattern[i] << endl;
 		}
-		cout << endl;
-		for (int i = 0; i < TrainSize; i++){
-			for (int j= 0; j < Patterns; j++){
-				cout << trainSet[i][j] << " ";
+		for (int k = 0; k < LetterNum; k++){
+			for (int i = 0; i < TrainSize; i++){
+				if (lables[i] == k){
+					for (int j = 0; j < Patterns; j++){
+						cout << trainSet[i][j] << " ";
+					}
+					cout << lables[i] << endl;
+				}
 			}
-			cout << lables[i] << endl;
 		}
 		freopen("CON", "w", stdout);
 #if NOFRESH

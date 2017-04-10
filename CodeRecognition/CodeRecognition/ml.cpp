@@ -13,7 +13,7 @@
 using namespace std;
 using namespace cv;
 
-extern char characters[58];
+extern char characters[LetterNum];
 double getSecondNorm(double *pt, double*tr);
 typedef struct node{
 	double secondNorm;
@@ -21,7 +21,7 @@ typedef struct node{
 }knnTrainNode,*knnTrain;
 bool SortBySecondNorm(const knnTrainNode &v1, const knnTrainNode &v2)//注意：本函数的参数的类型一定要与vector中元素的类型一致  
 {
-	return v1.secondNorm > v2.secondNorm;//降序排列  
+	return v1.secondNorm < v2.secondNorm;//升序排列  
 }
 char knn(double* pt, double trainSet[][Patterns], int* lables){
 	vector<knnTrainNode> trains;
@@ -33,7 +33,7 @@ char knn(double* pt, double trainSet[][Patterns], int* lables){
 	}
 #if ShowSecondNormal
 	for (int i = 0; i < TrainSize; i++){
-		cout << trains[i].secondNorm<<" ";
+		cout << i << ":" << trains[i].secondNorm << " ";
 		if (i % 10 == 9) cout << endl;
 	}
 	cout << endl << endl;
@@ -42,12 +42,12 @@ char knn(double* pt, double trainSet[][Patterns], int* lables){
 	sort(trains.begin(), trains.end(), SortBySecondNorm);
 #if ShowSecondNormal
 	for (int i = 0; i < TrainSize; i++){
-		cout << trains[i].secondNorm<<" ";
+		cout <<i<<":"<< trains[i].secondNorm<<" ";
 		if (i % 10 == 9) cout << endl;
 	}
 	cout << endl << endl;
 #endif
-	int lableNum[58];
+	int lableNum[LetterNum];
 	memset(lableNum, 0, sizeof(lableNum));
 	//统计前K个第二范数的标签
 	for (int i = 0; i < K; i++){
@@ -55,15 +55,17 @@ char knn(double* pt, double trainSet[][Patterns], int* lables){
 	}
 	//找到最高频率的标签
 	int maxnum = 0;
-	for (int i = 1; i < 58; i++){
+	for (int i = 1; i < LetterNum; i++){
 #if ShowTopK
 		cout << i << ":" << lableNum[i]<<" ";
 		if (i % 10 == 9) cout << endl;
 #endif
 		if (lableNum[i]>lableNum[maxnum]) maxnum = i;
 	}
+#if ShowTopK
 	//计算字符
-	cout << maxnum << ":" << characters[maxnum] << " "<<endl;
+	cout <<endl<< maxnum << ":" << characters[maxnum] << " "<<endl<<endl;
+#endif
 	return characters[maxnum];
 }
 
