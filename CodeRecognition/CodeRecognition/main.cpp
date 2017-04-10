@@ -10,16 +10,21 @@ using namespace std;
 using namespace cv;
 
 void generateCode(char *code, Mat& codeShow, Mat& identifyingCode);
-void splitCode(Mat& grayCode, Mat& identifyingCode, double pt[][Patterns],Mat& letter1, Mat& letter2, Mat& letter3, Mat& letter4);
-char getLetter(double pt[]);
+int splitCode(Mat& grayCode, Mat& identifyingCode, double pt[][Patterns],Mat& letter1, Mat& letter2, Mat& letter3, Mat& letter4);
+char getLetter(double* pt, double trainSet[][Patterns], int* lables, double *means, double * sDeviation);
 void preProcess(Mat& image, Mat& gray,Mat& output);
-void generateTrainSet(double trainSet[][Patterns], int* lables);
+void generateTrainSet(double trainSet[][Patterns], int* lables, double * means, double * sDeviation);
+void showPatterns(double* pt);
 void makeTitle(Mat& Background);
 int main(){
 	/*生成训练集合*/
 	double trainSet[TrainSize][Patterns]; //训练集
 	int lables[TrainSize];				  //标签集
-	generateTrainSet(trainSet, lables);
+	double means[Patterns];				  //特征均值
+	double sDeviation[Patterns];		  //特征标准差
+	memset(means, 0, sizeof(means));
+	memset(sDeviation, 0, sizeof(sDeviation));
+	generateTrainSet(trainSet, lables, means, sDeviation);
 
 #if DOTEST
 	/*生成测试集*/
@@ -52,16 +57,37 @@ int main(){
 		ADDRIO(imageRIO5, Background, letter_width, n, start);
 		ADDRIO(imageRIO6, Background, letter_width, n, start);
 		double pt[4][Patterns];
-		splitCode(gray, imageRIO2,pt,imageRIO3, imageRIO4, imageRIO5, imageRIO6);
-		
+		if (!splitCode(gray, imageRIO2, pt, imageRIO3, imageRIO4, imageRIO5, imageRIO6)){
+			n--;
+			continue;
+		}
+
 		//识别验证码
 		Mat imageRIO7;
 		ADDRIO(imageRIO7, Background, code_width, n, start);
 		char result[5];
-		result[0] = getLetter(pt[0]);
-		result[1] = getLetter(pt[1]);
-		result[2] = getLetter(pt[2]);
-		result[3] = getLetter(pt[3]);
+#if ShowTestPattern
+		showPatterns(pt[0]);
+#endif
+		result[0] = getLetter(pt[0], trainSet, lables, means, sDeviation);
+#if ShowTestPattern
+		showPatterns(pt[0]);
+		showPatterns(pt[1]);
+#endif
+		result[1] = getLetter(pt[1], trainSet, lables, means, sDeviation);
+#if ShowTestPattern
+		showPatterns(pt[1]);
+		showPatterns(pt[2]);
+#endif
+		result[2] = getLetter(pt[2], trainSet, lables, means, sDeviation);
+#if ShowTestPattern
+		showPatterns(pt[2]);
+		showPatterns(pt[3]);
+#endif
+		result[3] = getLetter(pt[3], trainSet, lables, means, sDeviation);
+#if ShowTestPattern
+		showPatterns(pt[3]);
+#endif
 		result[4] = '\0';
 
 		//显示识别结果
@@ -75,10 +101,10 @@ int main(){
 		codeShow.copyTo(imageRIO8);
 
 		//等待
-		for (int i = 0; i < 10000; i++){
-			for (int j = 0; j < 10000; j++);
+		for (int i = 0; i < 2000; i++){
+			for (int j = 0; j < 2000; j++);
 		}
-	} while (++n<N);
+	} while (++n<TestSize);
 
 	namedWindow("MainWindow", 1);
 	imshow("MainWindow",Background);
@@ -104,4 +130,11 @@ void makeTitle(Mat& Background){
 	ADDRIO(rio5, Background, code_width, -1, start);
 	putText(rio5, "Code", Point2d(0, 4 * code_height / 5), 4,
 		1, Scalar(0, 0, 0), 1, 8);
+}
+
+void showPatterns(double* pt){
+	for (int i = 0; i < Patterns; i++){
+		cout << pt[i]<<" ";
+	}
+	cout << endl;
 }

@@ -4,17 +4,19 @@
 #include<opencv.hpp>
 #include<imgproc\imgproc.hpp>
 #include <string>
+#include <cstring>
 #include <ctime>
 #include <windows.h>
+#include <cmath>
 #include "constant.h"
 
 using namespace std;
 using namespace cv;
 void preProcess(Mat& image, Mat& gray);
-void splitCode(Mat& grayCode, double pt[][Patterns]);
+int splitCode(Mat& grayCode, double pt[][Patterns]);
 
 char characters[58] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'j', 'k', 'n', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H','I', 'J', 'K', 'L', 'M', 'N','O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z' };
-int zt[5] = {0,2,3,4,5};
+int zt[5] = {0,2,3,4,5};  //五种字体
 static Scalar randomColor(RNG& rng)
 {
 	int icolor = (unsigned)rng;
@@ -94,9 +96,12 @@ void generateCode(char *code, Mat& codeShow, Mat& identifyingCode){
 }
 
 //生成训练集
-void generateTrainSet(double trainSet[][Patterns], int* lables){
+void generateTrainSet(double trainSet[][Patterns], int* lables, double * means, double * sDeviation){
 #if NOFRESH
 	if (freopen("train", "r", stdin) != NULL){
+		for (int i=0;i<Patterns;i++){
+			cin>>means[i]>>sDeviation[i];
+		}
 		for (int i=0;i<TrainSize;i++){
 			for (int j=0;j<Patterns;j++){
 				cin>>trainSet[i][j];
@@ -118,19 +123,57 @@ void generateTrainSet(double trainSet[][Patterns], int* lables){
 			//预处理
 			Mat gray(code_height, code_width, CV_8UC1);
 			preProcess(identifyingCode, gray);
-			
-
 			//分割和提取特征
-			splitCode(gray, trainSet+i*4);
-			for (int j = 0; j < 4; j++){
-				for (int k = 0; k < Patterns; k++){
-					cout << trainSet[i * 4 + j][k] << " ";
+			if (!splitCode(gray, trainSet + i * 4)){
+				i--;
+				for (int j = 0; j < 2000; j++){
+					for (int k = 0; k < 2000; k++);
 				}
-				cout << lables[i*4+j] << endl;
+				continue;
+			}
+			for (int j = 0; j < 2000; j++){
+				for (int k = 0; k < 2000; k++);
+			}
+			
+		}
+		//计算每一列的均值和标准差
+		for (int i = 0; i < TrainSize; i++){
+			for (int j = 0; j < Patterns; j++){
+				means[j] += trainSet[i][j];
 			}
 		}
+		for (int i = 0; i < Patterns; i++){
+			means[i] = means[i]/ TrainSize;
+		}
+		//计算每一列的标准差
+		for (int i = 0; i < TrainSize; i++){
+			for (int j = 0; j < Patterns; j++){
+				sDeviation[j] += (trainSet[i][j] - means[j])*(trainSet[i][j] - means[j]);
+			}
+		}
+		for (int i = 0; i < Patterns; i++){
+			sDeviation[i] = sqrt(sDeviation[i]);
+		}
+#if	Standardize
+		//列向量归一化
+		for (int i = 0; i < TrainSize; i++){
+			for (int j = 0; j < Patterns; j++){
+				trainSet[i][j] = (trainSet[i][j] - means[j]) / sDeviation[j];
+			}
+		}
+#endif
+		//输出到文件
+		for (int i = 0; i < Patterns; i++){
+			cout << means[i]<<" "<<sDeviation[i] << " ";
+		}
+		cout << endl;
+		for (int i = 0; i < TrainSize; i++){
+			for (int j= 0; j < Patterns; j++){
+				cout << trainSet[i][j] << " ";
+			}
+			cout << lables[i] << endl;
+		}
 		freopen("CON", "w", stdout);
-
 #if NOFRESH
 	}
 #endif

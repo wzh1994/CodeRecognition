@@ -13,6 +13,7 @@ using namespace std;
 using namespace cv;
 
 void calcPattern(Mat& grayCode, vector<Point> contours, double* pt);
+char knn(double* pt, double trainSet[][Patterns], int* lables);
 
 //预处理，灰度图用于后续处理，output为三通道图用于显示
 void preProcess(Mat& image, Mat& gray, Mat& output){
@@ -22,9 +23,9 @@ void preProcess(Mat& image, Mat& gray, Mat& output){
 	int histSize = 256;
 	float range[] = { 0, 256 };
 	const float* histRange = { range };
-	calcHist(&gray, 1, 0,Mat(),hist,1,&histSize,&histRange,true,false);
+	calcHist(&gray, 1, 0, Mat(), hist, 1, &histSize, &histRange, true, false);
 	int i;
-	uchar* p,*q;
+	uchar* p, *q;
 	p = hist.ptr<uchar>(0);
 	q = lut.ptr<uchar>(0);
 #if MaxFourColor
@@ -33,8 +34,8 @@ void preProcess(Mat& image, Mat& gray, Mat& output){
 #endif
 	for (i = 0; i < 256; i++)
 	{
-		int fre=cvRound(hist.at<float>(i));
-		q[i] = fre < 75 ? 0 :fre>1000?0: 255;
+		int fre = cvRound(hist.at<float>(i));
+		q[i] = fre < 75 ? 0 : fre>1000 ? 0 : 255;
 #if MaxFourColor
 		if (fre>colorFre[0]){
 			colorFre[4] = colorFre[3];
@@ -64,7 +65,9 @@ void preProcess(Mat& image, Mat& gray, Mat& output){
 #endif
 	}
 #if MaxFourColor
-	cout << colorFre[1] << " " << colorFre[2] << " " << colorFre[3] << " " << colorFre[4] << endl;
+	if (output.data){
+		cout << colorFre[1] << " " << colorFre[2] << " " << colorFre[3] << " " << colorFre[4] << endl;
+	}
 #endif
 	LUT(gray, lut, gray);
 	
@@ -75,9 +78,9 @@ void preProcess(Mat& image, Mat& gray, Mat& output){
 	dilate(gray, gray, element2);
 
 	//转换为3通道灰度图用于显示
-	int row = gray.rows;
-	int col = gray.cols;
 	if (output.data){
+		int row = gray.rows;
+		int col = gray.cols;
 		for (i = 0; i < row; i++){
 			p = gray.ptr<uchar>(i);
 			q = output.ptr<uchar>(i);
@@ -97,7 +100,7 @@ bool SortByX(const vector<Point> &v1, const vector<Point> &v2)//注意：本函数的参
 }
 
 //分割图像，letter是调整了大小的三通道图，用于显示
-void splitCode(Mat& grayCode, Mat& identifyingCode, double pt[][Patterns],Mat& letter1, Mat& letter2, Mat& letter3, Mat& letter4){
+int splitCode(Mat& grayCode, Mat& identifyingCode, double pt[][Patterns],Mat& letter1, Mat& letter2, Mat& letter3, Mat& letter4){
 	//轮廓查找 因为寻找轮廓时候会对原图造成影响，故需要备份
 	vector<vector<Point>>contours;
 	Mat tempGrayCode(code_height, code_width, CV_8UC1);
@@ -146,11 +149,14 @@ void splitCode(Mat& grayCode, Mat& identifyingCode, double pt[][Patterns],Mat& l
 
 	//提取字符区域
 	Mat temp[4];
+	if (contours.size()!= 4) return 0;
 	for (vector<vector<Point>>::iterator i = contours.begin(); i != contours.end();i++){
 		Rect r = boundingRect(Mat(*i));
 		temp[i - contours.begin()] = grayCode(r);
 		calcPattern(temp[i - contours.begin()], *i, pt[i - contours.begin()]);
-		resize(temp[i - contours.begin()], temp[i - contours.begin()], Size(letter_width, code_height), 0, 0, INTER_CUBIC);
+		if (letter1.data){
+			resize(temp[i - contours.begin()], temp[i - contours.begin()], Size(letter_width, code_height), 0, 0, INTER_CUBIC);
+		}
 	}
 #if PatternShow
 	for (int i = 0; i < 4; i++){
@@ -178,9 +184,10 @@ void splitCode(Mat& grayCode, Mat& identifyingCode, double pt[][Patterns],Mat& l
 			}
 		}
 	}
+	return 1;
 }
-void splitCode(Mat& grayCode, double pt[][Patterns]){
-	splitCode(grayCode, Mat(), pt, Mat(), Mat(), Mat(), Mat());
+int splitCode(Mat& grayCode, double pt[][Patterns]){
+	return splitCode(grayCode, Mat(), pt, Mat(), Mat(), Mat(), Mat());
 }
 
 void calcPattern(Mat& grayCode, vector<Point> contours, double* pt){
@@ -240,7 +247,14 @@ void calcPattern(Mat& grayCode, vector<Point> contours, double* pt){
 	
 }
 
-char getLetter(double pt[]){
-	
-	return '0';
+char getLetter(double* pt, double trainSet[][Patterns], int* lables, double *means, double * sDeviation){
+#if Standardize
+	for (int i = 0; i < Patterns; i++){
+		pt[i] = (pt[i] - means[i]) / sDeviation[i];
+	}
+#endif
+	//KNN
+	char knn_result = knn(pt, trainSet, lables);
+
+	return knn_result;
 }
