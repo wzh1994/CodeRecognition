@@ -9,24 +9,16 @@
 #include <iomanip>
 #include <cmath>
 #include <ml/ml.hpp>
+#include <stdlib.h>
+#include <map>
 #include "constant.h"
 using namespace std;
 using namespace cv;
 
 extern char characters[LetterNum];
-double parzenProbability[ParzenSize][LetterNum]; //离散概率密度
+map<long long, double*> parzenProbability;
 double priorProbability[LetterNum];        //先验概率
-#if WindowSize==3
-int threes[8] = { 1, 3, 9, 27, 81, 243, 729, 2187 };
-#elif WindowSize==4
-int fours[8] = { 1, 4, 16, 64, 256, 1024, 4096, 16384 };
-#elif WindowSize==6
-int six[8] = { 1, 6, 36, 216, 1296, 7776, 46656, 279936 };
-#elif WindowSize==7
-int seven[8] = { 1, 7, 49, 343, 2401, 16807, 117649, 823543 };
-#elif WindowSize==8
-int eight[8] = { 1, 8, 64, 512, 4096, 32768, 262144, 2097152 };
-#endif
+long long pows[Patterns];
 double getSecondNorm(double *pt, double*tr);
 typedef struct node{
 	double secondNorm;
@@ -90,68 +82,54 @@ double getSecondNorm(double *pt, double*tr){
 	return sqrt(sn);
 }
 
-int calParzenPosition(double* pt){
-	int pos = 0;
+long long calParzenPosition(double* pt){
+	long long pos = 0;
 	for (int i = 0; i < Patterns; i++){
-#if WindowSize==3
-		if (3 * pt[i] < 1) pos += 0;
-		else if (3 * pt[i] < 2) pos += threes[i];
-		else pos += 2 * threes[i];
-#elif WindowSize==4
-		if (4 * pt[i] < 1) pos += 0;
-		else if (4 * pt[i] < 2) pos += fours[i];
-		else if (4 * pt[i] < 3) pos +=2* fours[i];
-		else pos += 3 * fours[i];
-#elif WindowSize==6
-		if (6 * pt[i] < 1) pos += 0;
-		else if (6 * pt[i] < 2) pos += six[i];
-		else if (6 * pt[i] < 3) pos += 2 * six[i];
-		else if (6 * pt[i] < 4) pos += 3 * six[i];
-		else if (6 * pt[i] < 5) pos += 4 * six[i];
-		else pos += 6 * six[i];
-#elif WindowSize==7
-		if (7 * pt[i] < 1) pos += 0;
-		else if (7 * pt[i] < 2) pos += seven[i];
-		else if (7 * pt[i] < 3) pos += 2 * seven[i];
-		else if (7 * pt[i] < 4) pos += 3 * seven[i];
-		else if (7 * pt[i] < 5) pos += 4 * seven[i];
-		else if (7 * pt[i] < 6) pos += 5 * seven[i];
-		else pos += 6 * seven[i];
-#elif WindowSize==8
-		if (8 * pt[i] < 1) pos += 0;
-		else if (8 * pt[i] < 2) pos += eight[i];
-		else if (8 * pt[i] < 3) pos += 2 * eight[i];
-		else if (8 * pt[i] < 4) pos += 3 * eight[i];
-		else if (8 * pt[i] < 5) pos += 4 * eight[i];
-		else if (8 * pt[i] < 6) pos += 5 * eight[i];
-		else if (8 * pt[i] < 7) pos += 6 * eight[i];
-		else pos += 7 * eight[i];
-#endif
+		int level = pt[i] * WindowSize;
+		level = level < 10 ? level : 9;
+		pos += level*pows[i];
 	}
 	return pos;
 }
 
 void generateParzenArgs(double trainSet[][Patterns],int* lables){
-	memset(parzenProbability, 0, sizeof(parzenProbability));
 	memset(priorProbability, 0, sizeof(priorProbability));
+	for (int i=0;i<Patterns;i++){
+		pows[i]=  pow(WindowSize, i);
+	}
 #if NOFRESH
 	if (freopen("parzen", "r", stdin) != NULL){
 		for (int i = 0; i<LetterNum; i++){
 			cin >> priorProbability[i];
 		}
-		int line;
-		while (~scanf("%d",&line)){
+		long long line;
+		while (~scanf("%I64d",&line)){
+			double *temp = (double*)malloc(LetterNum*sizeof(double));
 			for (int j = 0; j<LetterNum; j++){
-				cin >> parzenProbability[line][j];
+				cin >> temp[j];
 			}
+			parzenProbability[line] = temp;
 		}
 		freopen("CON", "r", stdin);
 	}
 	else{
 #endif
+		//读入训练集
 		for (int i = 0; i < TrainSize; i++){
-			int pos=calParzenPosition(trainSet[i]);
-			parzenProbability[pos][lables[i]]++;
+#if ShowProcess
+			if (i%2000==0)
+				cout << "Trainset Parzen "<< i << endl;
+#endif
+			long long pos = calParzenPosition(trainSet[i]);
+			if (parzenProbability[pos]){
+				parzenProbability[pos][lables[i]]++;
+			}
+			else{
+				double *temp = (double*)malloc(LetterNum*sizeof(double));
+				memset(temp, 0, LetterNum*sizeof(double));
+				parzenProbability[pos] = temp;
+				parzenProbability[pos][lables[i]]++;
+			}
 			priorProbability[lables[i]]++;
 		}
 		freopen("parzen","w",stdout);
@@ -160,42 +138,47 @@ void generateParzenArgs(double trainSet[][Patterns],int* lables){
 			cout << priorProbability[i]<<" ";
 		}
 		cout << endl;
-		for (int i = 0; i < ParzenSize; i++){
-			int flag = 0;
+		for (map<long long, double*>::iterator i = parzenProbability.begin(); i != parzenProbability.end(); i++){
+			cout << i->first << " ";
 			for (int j = 0; j < LetterNum; j++){
-				if (parzenProbability[i][j] != 0) flag = 1;
-				parzenProbability[i][j] /= TrainSize;
+				i->second[j] /= TrainSize;
+				cout << i->second[j] << " ";
 			}
-			if (flag){
-				cout << i << " ";
-				for (int j = 0; j < LetterNum; j++){
-					cout << parzenProbability[i][j] << " ";
-				}
-				cout << endl;
-			}
+			cout << endl;
 		}
 		freopen("CON", "w", stdout);
+#if ShowProcess
+		cout << "Trainset Parzen Done" << endl;
+#endif
 #if NOFRESH
 	}
 #endif
 }
 
 char parzen(double* pt){
-	int pos = calParzenPosition(pt);
+	long long pos = calParzenPosition(pt);
 	double maxProbility = 0;
 	int maxLable = 0;
-	for (int i = 0; i < LetterNum; i++){
-		double probility = parzenProbability[pos][i] * priorProbability[i]; 
+	if (parzenProbability[pos]){
+		for (int i = 0; i < LetterNum; i++){
+			double probility = parzenProbability[pos][i] * priorProbability[i];
 #if showParzen
-		cout << probility << " ";
+			cout << probility << " ";
 #endif
-		if (probility>maxProbility){
-			maxProbility = probility;
-			maxLable = i;
+			if (probility>maxProbility){
+				maxProbility = probility;
+				maxLable = i;
+			}
 		}
 	}
 #if showParzen
 	cout << maxLable << " " << characters[maxLable]<<endl;
 #endif
 	return characters[maxLable];
+}
+
+void freeMap(){
+	for (map<long long, double*>::iterator i = parzenProbability.begin(); i != parzenProbability.end(); i++){
+		if (i->second) free(i->second);
+	}
 }

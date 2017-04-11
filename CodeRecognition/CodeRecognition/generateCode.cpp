@@ -204,6 +204,9 @@ void generateTrainSet(double trainSet[][Patterns], int* lables, PTArgs ptArg){
 			cout << lables[i] << endl;
 		}
 		freopen("CON", "w", stdout);
+#if ShowProcess
+		cout << "Generate Trainset Done" << endl;
+#endif
 #if NOFRESH
 	}
 #endif

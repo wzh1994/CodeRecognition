@@ -18,6 +18,7 @@ void generateTrainSet(double trainSet[][Patterns], int* lables, PTArgs ptArg);
 void generateParzenArgs(double trainSet[][Patterns], int* lables);
 void showPatterns(double* pt);
 void makeTitle(Mat& Background);
+void freeMap();
 RNG rng(GetTickCount());
 int main(){
 	/*生成训练集合*/
@@ -99,6 +100,7 @@ int main(){
 	imshow("MainWindow",Background);
 #endif
 	waitKey();
+	freeMap();
 }
 
 void makeTitle(Mat& Background){
