@@ -1,7 +1,7 @@
 //训练参数控制
 #define K 300            //KNN的K，必须小于KNN_N
 #define KNN_N     20000  //KNN使用的训练集,必须小于TrainSize
-#define TrainSize 1000000 //训练样本的个数，必须为4的倍数
+#define TrainSize 300000 //训练样本的个数，必须为4的倍数
 #define TestSize 10     //测试样本的个数
 #define Patterns 8	   //提取的特征个数
 #define Standardize 1   //标准化
