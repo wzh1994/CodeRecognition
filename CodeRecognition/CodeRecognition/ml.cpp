@@ -20,6 +20,12 @@ double priorProbability[LetterNum];        //œ»—È∏≈¬ 
 int threes[8] = { 1, 3, 9, 27, 81, 243, 729, 2187 };
 #elif WindowSize==4
 int fours[8] = { 1, 4, 16, 64, 256, 1024, 4096, 16384 };
+#elif WindowSize==6
+int six[8] = { 1, 6, 36, 216, 1296, 7776, 46656, 279936 };
+#elif WindowSize==7
+int seven[8] = { 1, 7, 49, 343, 2401, 16807, 117649, 823543 };
+#elif WindowSize==8
+int eight[8] = { 1, 8, 64, 512, 4096, 32768, 262144, 2097152 };
 #endif
 double getSecondNorm(double *pt, double*tr);
 typedef struct node{
@@ -96,6 +102,30 @@ int calParzenPosition(double* pt){
 		else if (4 * pt[i] < 2) pos += fours[i];
 		else if (4 * pt[i] < 3) pos +=2* fours[i];
 		else pos += 3 * fours[i];
+#elif WindowSize==6
+		if (6 * pt[i] < 1) pos += 0;
+		else if (6 * pt[i] < 2) pos += six[i];
+		else if (6 * pt[i] < 3) pos += 2 * six[i];
+		else if (6 * pt[i] < 4) pos += 3 * six[i];
+		else if (6 * pt[i] < 5) pos += 4 * six[i];
+		else pos += 6 * six[i];
+#elif WindowSize==7
+		if (7 * pt[i] < 1) pos += 0;
+		else if (7 * pt[i] < 2) pos += seven[i];
+		else if (7 * pt[i] < 3) pos += 2 * seven[i];
+		else if (7 * pt[i] < 4) pos += 3 * seven[i];
+		else if (7 * pt[i] < 5) pos += 4 * seven[i];
+		else if (7 * pt[i] < 6) pos += 5 * seven[i];
+		else pos += 6 * seven[i];
+#elif WindowSize==8
+		if (8 * pt[i] < 1) pos += 0;
+		else if (8 * pt[i] < 2) pos += eight[i];
+		else if (8 * pt[i] < 3) pos += 2 * eight[i];
+		else if (8 * pt[i] < 4) pos += 3 * eight[i];
+		else if (8 * pt[i] < 5) pos += 4 * eight[i];
+		else if (8 * pt[i] < 6) pos += 5 * eight[i];
+		else if (8 * pt[i] < 7) pos += 6 * eight[i];
+		else pos += 7 * eight[i];
 #endif
 	}
 	return pos;
@@ -133,8 +163,8 @@ void generateParzenArgs(double trainSet[][Patterns],int* lables){
 		for (int i = 0; i < ParzenSize; i++){
 			int flag = 0;
 			for (int j = 0; j < LetterNum; j++){
-				parzenProbability[i][j] /= TrainSize;
 				if (parzenProbability[i][j] != 0) flag = 1;
+				parzenProbability[i][j] /= TrainSize;
 			}
 			if (flag){
 				cout << i << " ";
@@ -153,7 +183,7 @@ void generateParzenArgs(double trainSet[][Patterns],int* lables){
 char parzen(double* pt){
 	int pos = calParzenPosition(pt);
 	double maxProbility = 0;
-	int maxLable = -1;
+	int maxLable = 0;
 	for (int i = 0; i < LetterNum; i++){
 		double probility = parzenProbability[pos][i] * priorProbability[i]; 
 #if showParzen
