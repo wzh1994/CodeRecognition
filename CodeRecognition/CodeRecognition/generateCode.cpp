@@ -100,26 +100,53 @@ void generateCode(char *code, Mat& codeShow, Mat& identifyingCode, int* lables){
 		
 	//cout << code<<endl;
 }
+//用于生产训练集
 void generateCode(char *code, Mat& identifyingCode,int* lables){
 	generateCode(code, Mat(), identifyingCode,lables);
 }
+//用于生成显示的测试
 void generateCode(char *code, Mat& codeShow, Mat& identifyingCode){
 	generateCode(code, codeShow, identifyingCode, NULL);
 }
-
+//用于批量测试
+void generateCode(char *code, Mat& identifyingCode){
+	generateCode(code, Mat(), identifyingCode, NULL);
+}
 //生成训练集
 void generateTrainSet(double trainSet[][Patterns], int* lables, PTArgs ptArg){
 #if NOFRESH
 	if (freopen("train", "r", stdin) != NULL){
+#if ShowProcess
+		cout << "Load Trainset Start..." << endl;
+#endif
 		for (int i=0;i<Patterns;i++){
 			cin>>ptArg->means[i]>>ptArg->sDeviation[i]>>ptArg->maxPattern[i] >> ptArg->minPattern[i]>>ptArg->scalePattern[i];
 		}
+#if ShowProcess
+		int rate = KNN_N / 50;
+#endif
 		for (int i = 0; i<KNN_N; i++){
+#if ShowProcess
+			int dot = (i+1) / rate;;
+			if ((i+1)%rate == 0){
+				printf("Loading Trainset");
+				for (int k = 0; k < dot; k++){
+					printf(".");
+				}
+				for (int k = dot; k < 50; k++){
+					printf(" ");
+				}
+				printf("%2d%%\r", dot * 2);
+			}
+#endif
 			for (int j=0;j<Patterns;j++){
 				cin>>trainSet[i][j];
 			}
 			cin >> lables[i];
 		}
+#if ShowProcess
+		printf("Load Trainset Done\n");
+#endif
 		freopen("CON", "r", stdin);
 	}
 	else{

@@ -1,14 +1,15 @@
 //训练参数控制
-#define K 100            //KNN的K，必须小于KNN_N
-#define KNN_N     2000  //KNN使用的训练集,必须小于TrainSize
-#define TrainSize 3000 //训练样本的个数，必须为4的倍数
-#define TestSize 10     //测试样本的个数
+#define K 100              //KNN的K，必须小于KNN_N
+#define KNN_N     20000    //KNN使用的训练集,必须小于TrainSize
+#define TrainSize 300000    //训练样本的个数，必须为4的倍数
+#define TestSize 10        //显示的测试样本的个数
+#define TestAccSize 1000  //测试准确度的样本的个数
 #define Patterns 8	   //提取的特征个数
 #define Standardize 1   //标准化
 #define ZScore 0	    //新数据=（原数据-均值）/标准差
 #define MinMax 1       //新数据=（原数据-极小值）/（极大值-极小值）
 #define Decimal_Scaling // x'=x/(10*j)
-#define WindowSize 10    //parzen窗的窗口大小
+#define WindowSize 20    //parzen窗的窗口大小
 
 //验证码相关
 #define Lines 0		  //是否加入干扰线
@@ -33,6 +34,7 @@
 //训练&测试
 #define NOFRESH 1	//使用已经生成好的训练集
 #define DOTEST 1	//生成测试集并测试
+#define TestAccuracy 1 //测试准确率
 
 /*边框大小参数*/
 #define code_width  150 //验证码宽度

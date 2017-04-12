@@ -99,6 +99,9 @@ void generateParzenArgs(double trainSet[][Patterns],int* lables){
 	}
 #if NOFRESH
 	if (freopen("parzen", "r", stdin) != NULL){
+#if ShowProcess
+		printf("Loading Parzen Agrs...\n");
+#endif
 		for (int i = 0; i<LetterNum; i++){
 			cin >> priorProbability[i];
 		}
@@ -110,9 +113,16 @@ void generateParzenArgs(double trainSet[][Patterns],int* lables){
 			}
 			parzenProbability[line] = temp;
 		}
+#if ShowProcess
+		printf("Load Parzen Agrs Done\n");
+#endif
 		freopen("CON", "r", stdin);
 	}
 	else{
+#endif
+#if ShowProcess
+		printf("Train parzen args start:\n");
+		int rate = TrainSize / 50;
 #endif
 		//∂¡»Î—µ¡∑ºØ
 		for (int i = 0; i < TrainSize; i++){
@@ -131,6 +141,19 @@ void generateParzenArgs(double trainSet[][Patterns],int* lables){
 				parzenProbability[pos][lables[i]]++;
 			}
 			priorProbability[lables[i]]++;
+#if ShowProcess
+			int dot = (i + 1) / rate;;
+			if ((i + 1) % rate == 0){
+				printf("Testing Accuracy");
+				for (int k = 0; k < dot; k++){
+					printf(".");
+				}
+				for (int k = dot; k < 50; k++){
+					printf(" ");
+				}
+				printf("%2d%%\r", dot * 2);
+			}
+#endif
 		}
 		freopen("parzen","w",stdout);
 		for (int i = 0; i < LetterNum; i++){
