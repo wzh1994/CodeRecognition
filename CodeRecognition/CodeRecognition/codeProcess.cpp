@@ -13,7 +13,7 @@ using namespace std;
 using namespace cv;
 
 void calcPattern(Mat& grayCode, vector<Point> contours, double* pt);
-char knn(double* pt, double trainSet[][Patterns], int* lables);
+int knn_parzen(double* pt, double trainSet[][Patterns], int* lables);
 char parzen(double* pt);
 
 //预处理，灰度图用于后续处理，output为三通道图用于显示
@@ -278,9 +278,9 @@ int getLetter(double* pt, double trainSet[][Patterns], int* lables, PTArgs ptArg
 #endif
 #endif
 	//KNN
-	char knn_result = knn(pt, trainSet, lables);
+	int knn_parzen_result = knn_parzen(pt, trainSet, lables);
 	char parzen_result = parzen(pt);
-	int result = knn_result;
+	int result = knn_parzen_result;
 	result = (result << 8) + (int)parzen_result;
 #if showResult
 	cout << result/256<<" "<<result%256<<endl;

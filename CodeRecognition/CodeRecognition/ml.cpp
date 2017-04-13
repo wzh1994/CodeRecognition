@@ -28,9 +28,22 @@ bool SortBySecondNorm(const knnTrainNode &v1, const knnTrainNode &v2)//×¢Òâ£º±¾º
 {
 	return v1.secondNorm < v2.secondNorm;//ÉýÐòÅÅÁÐ  
 }
-char knn(double* pt, double trainSet[][Patterns], int* lables){
+bool inInWindow(double *pt, double *tr){
+	for (int i = 0; i < Patterns; i++){
+		if (abs(pt[i] - tr[i]) >( 1 / (double)WindowSize)) return false;
+	}
+	return true;
+}
+int knn_parzen(double* pt, double trainSet[][Patterns], int* lables){
 	vector<knnTrainNode> trains;
+	int parzen[LetterNum];
+	memset(parzen, 0, sizeof(parzen));
 	for (int i = 0; i < KNN_N; i++){
+		//parzen
+		if (inInWindow(pt,trainSet[i])){
+			parzen[lables[i]]++;
+		}
+		//knn
 		knnTrainNode temp;
 		temp.secondNorm = getSecondNorm(pt, trainSet[i]);
 		temp.lable = lables[i];
@@ -60,6 +73,7 @@ char knn(double* pt, double trainSet[][Patterns], int* lables){
 	}
 	//ÕÒµ½×î¸ßÆµÂÊµÄ±êÇ©
 	int maxnum = 0;
+	int result = 0;
 	for (int i = 1; i < LetterNum; i++){
 #if ShowTopK
 		cout << i << ":" << lableNum[i]<<" ";
@@ -71,7 +85,15 @@ char knn(double* pt, double trainSet[][Patterns], int* lables){
 	//¼ÆËã×Ö·û
 	cout <<endl<< maxnum << ":" << characters[maxnum] << " "<<endl<<endl;
 #endif
-	return characters[maxnum];
+	result = characters[maxnum];
+	//parzen
+	maxnum = 0;
+	for (int i = 1; i < LetterNum; i++){
+		if (parzen[i]>parzen[maxnum]) maxnum = i;
+	}
+	result = result << 8;
+	result += (int)characters[maxnum];
+	return result;
 }
 
 double getSecondNorm(double *pt, double*tr){

@@ -1,4 +1,5 @@
 #include <iostream>
+#include <cstdio>
 #include<core/core.hpp>  
 #include<highgui/highgui.hpp>  
 #include<opencv.hpp>
@@ -83,17 +84,19 @@ int main(){
 		result[1] = getLetter(pt[1], trainSet, lables, &ptArg);
 		result[2] = getLetter(pt[2], trainSet, lables, &ptArg);
 		result[3] = getLetter(pt[3], trainSet, lables, &ptArg);
-		char resultLetter[10];
+		char resultLetter[15];
 		for (int i = 0; i < 4; i++){
-			resultLetter[i] = (result[i] >> 8);
-			resultLetter[i+5] = result[i]%256;
+			resultLetter[i] = (result[i] >> 16);
+			resultLetter[i + 5] = (result[i] >> 8) % 256;
+			resultLetter[i + 10] = result[i] % 256;
 		}
 		resultLetter[4] = '|';
-		resultLetter[9] = '\0';
+		resultLetter[9] = '|';
+		resultLetter[14] = '\0';
 
 		//显示识别结果
 		Mat resultShow(code_height, code_width, CV_8UC3, Scalar(255, 255, 255));
-		putText(resultShow, resultLetter, Point2d(0, 28), 4, 0.6, Scalar(0, 0, 0), 1, 8);
+		putText(resultShow, resultLetter, Point2d(0, 28), 4, 0.5, Scalar(0, 0, 0), 1, 8);
 		resultShow.copyTo(imageRIO7);
 
 		//输出正确的验证码
@@ -107,7 +110,7 @@ int main(){
 #if ShowProcess
 	printf("Test accuracy start:\n");
 #endif
-	int knn_right = 0, parzen_right = 0;
+	int knn_right = 0, parzen_right = 0,hist_result=0;
 #if ShowProcess
 	int rate = TestAccSize / 50;
 #endif
@@ -127,15 +130,18 @@ int main(){
 		result[1] = getLetter(pt[1], trainSet, lables, &ptArg);
 		result[2] = getLetter(pt[2], trainSet, lables, &ptArg);
 		result[3] = getLetter(pt[3], trainSet, lables, &ptArg);
-		char resultLetter[10];
+		char resultLetter[15];
 		for (int i = 0; i < 4; i++){
-			resultLetter[i] = (result[i] >> 8);
-			resultLetter[i + 5] = result[i] % 256;
+			resultLetter[i] = (result[i] >> 16);
+			resultLetter[i + 5] = (result[i]>>8) % 256;
+			resultLetter[i + 10] = result[i] % 256;
 		}
 		resultLetter[4] = '|';
-		resultLetter[9] = '\0';
+		resultLetter[9] = '|';
+		resultLetter[14] = '\0';
 		if (code[0] == resultLetter[0] && code[1] == resultLetter[1] && code[2] == resultLetter[2] && code[3] == resultLetter[3]) knn_right++;
 		if (code[0] == resultLetter[5] && code[1] == resultLetter[6] && code[2] == resultLetter[7] && code[3] == resultLetter[8]) parzen_right++;
+		if (code[0] == resultLetter[10] && code[1] == resultLetter[11] && code[2] == resultLetter[12] && code[3] == resultLetter[13]) hist_result++;
 #if ShowProcess
 		int dot = (n + 1) / rate;
 		if ((n + 1) % rate == 0){
@@ -153,7 +159,7 @@ int main(){
 #if ShowProcess
 	printf("Test Accuracy Done\n");
 #endif
-	cout << "knn accuracy:" << (double)knn_right / TestAccSize << endl << "parzen accuracy:" << (double)parzen_right / TestAccSize << endl;
+	cout << "knn accuracy:" << (double)knn_right / TestAccSize << endl << "parzen accuracy:" << (double)parzen_right / TestAccSize << endl << "hist accuracy:" << (double)hist_result / TestAccSize << endl;
 #endif
 #endif
 	freeMap();
