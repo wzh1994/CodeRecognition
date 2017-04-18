@@ -34,10 +34,10 @@ static Scalar randomColor(RNG& rng)
 	int icolor = (unsigned)rng;
 	return Scalar(icolor & 255, (icolor >> 8) & 255, (icolor >> 16) & 255);
 }
-void generateCode(char *code, Mat& codeShow, Mat& identifyingCode, int* lables){
+void generateCode(char *code, Mat& codeShow, Mat& identifyingCode, int* labels){
 	int lineType = 8;
 	
-	//验证码背景
+	//生成验证码背景的噪音
 	int channels = identifyingCode.channels();
 	int nRows = identifyingCode.rows ;
 	int nCols = identifyingCode.cols*channels;
@@ -49,6 +49,7 @@ void generateCode(char *code, Mat& codeShow, Mat& identifyingCode, int* lables){
 
 	int i, j;
 	uchar* p;
+	//遍历图片
 	for (i = 0; i < nRows; ++i)
 	{
 		p = identifyingCode.ptr<uchar>(i);
@@ -82,7 +83,7 @@ void generateCode(char *code, Mat& codeShow, Mat& identifyingCode, int* lables){
 	//生成待识别的验证码图片
 	for (int i = 0; i < 4; i++){
 		int temp = rng.uniform(0, LetterNum);
-		if (lables) lables[i] = temp;
+		if (labels) labels[i] = temp;
 		code[i] = characters[temp];
 		code[i + 1] = '\0';
 		string ccode(code+i);
@@ -101,8 +102,8 @@ void generateCode(char *code, Mat& codeShow, Mat& identifyingCode, int* lables){
 	//cout << code<<endl;
 }
 //用于生产训练集
-void generateCode(char *code, Mat& identifyingCode,int* lables){
-	generateCode(code, Mat(), identifyingCode,lables);
+void generateCode(char *code, Mat& identifyingCode,int* labels){
+	generateCode(code, Mat(), identifyingCode,labels);
 }
 //用于生成显示的测试
 void generateCode(char *code, Mat& codeShow, Mat& identifyingCode){
@@ -113,7 +114,7 @@ void generateCode(char *code, Mat& identifyingCode){
 	generateCode(code, Mat(), identifyingCode, NULL);
 }
 //生成训练集
-void generateTrainSet(double trainSet[][Patterns], int* lables, PTArgs ptArg){
+void generateTrainSet(double trainSet[][Patterns], int* labels, PTArgs ptArg){
 #if NOFRESH
 	if (freopen("train", "r", stdin) != NULL){
 #if ShowProcess
@@ -142,7 +143,7 @@ void generateTrainSet(double trainSet[][Patterns], int* lables, PTArgs ptArg){
 			for (int j=0;j<Patterns;j++){
 				cin>>trainSet[i][j];
 			}
-			cin >> lables[i];
+			cin >> labels[i];
 		}
 #if ShowProcess
 		printf("Load Trainset Done\n");
@@ -151,7 +152,7 @@ void generateTrainSet(double trainSet[][Patterns], int* lables, PTArgs ptArg){
 	}
 	else{
 #endif
-		freopen("train", "w", stdout);
+		
 		memset(ptArg->means, 0, sizeof(ptArg->means));
 		memset(ptArg->sDeviation, 0, sizeof(ptArg->sDeviation));
 		for (int i = 0; i < Patterns; i++){
@@ -160,10 +161,14 @@ void generateTrainSet(double trainSet[][Patterns], int* lables, PTArgs ptArg){
 		}
 		char code[5];
 		int n = TrainSize/4;
+#if ShowProcess
+		printf("Generate codes:\n");
+		int rate = TrainSize / 200;
+#endif
 		for (int i = 0; i < n; i++){
 			//生成验证码
 			Mat identifyingCode(code_height, code_width, CV_8UC3, Scalar(255, 255, 255));
-			generateCode(code, identifyingCode, lables+i*4);
+			generateCode(code, identifyingCode, labels+i*4);
 
 			//预处理
 			Mat gray(code_height, code_width, CV_8UC1);
@@ -173,8 +178,24 @@ void generateTrainSet(double trainSet[][Patterns], int* lables, PTArgs ptArg){
 				i--;
 				continue;
 			}
+#if ShowProcess
+			int dot = (i + 1) / rate;;
+			if ((i + 1) % rate == 0){
+				printf("Generate train set");
+				for (int k = 0; k < dot; k++){
+					printf(".");
+				}
+				for (int k = dot; k < 50; k++){
+					printf(" ");
+				}
+				printf("%2d%%\r", dot * 2);
+			}
+#endif
 		}
 		//计算每一列的均值和最大，最小值
+#if ShowProcess
+		cout << "Generate codes done" << endl ;
+#endif
 		for (int i = 0; i < TrainSize; i++){
 			for (int j = 0; j < Patterns; j++){
 				ptArg->means[j] += trainSet[i][j];
@@ -203,6 +224,9 @@ void generateTrainSet(double trainSet[][Patterns], int* lables, PTArgs ptArg){
 		}
 #if	Standardize
 		//列向量归一化
+#if ShowProcess
+		cout << "Standardize trainset..." << endl;
+#endif
 #if ZScore
 		//Z-Score法则
 		for (int i = 0; i < TrainSize; i++){
@@ -219,8 +243,12 @@ void generateTrainSet(double trainSet[][Patterns], int* lables, PTArgs ptArg){
 			}
 		}
 #endif
+#if ShowProcess
+		cout << "Standardize trainset done" << endl;
+#endif
 #endif
 		//输出到文件
+		freopen("train", "w", stdout);
 		for (int i = 0; i < Patterns; i++){
 			cout << ptArg->means[i] << " " << ptArg->sDeviation[i] << " " << ptArg->maxPattern[i] << " " << ptArg->minPattern[i] << " " << ptArg->scalePattern[i] << endl;
 		}
@@ -228,7 +256,7 @@ void generateTrainSet(double trainSet[][Patterns], int* lables, PTArgs ptArg){
 			for (int j = 0; j < Patterns; j++){
 				cout << trainSet[i][j] << " ";
 			}
-			cout << lables[i] << endl;
+			cout << labels[i] << endl;
 		}
 		freopen("CON", "w", stdout);
 #if ShowProcess

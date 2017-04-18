@@ -22,7 +22,7 @@ long long pows[Patterns];
 double getSecondNorm(double *pt, double*tr);
 typedef struct node{
 	double secondNorm;
-	int lable;
+	int label;
 }knnTrainNode,*knnTrain;
 bool SortBySecondNorm(const knnTrainNode &v1, const knnTrainNode &v2)//×¢Òâ£º±¾º¯ÊıµÄ²ÎÊıµÄÀàĞÍÒ»¶¨ÒªÓëvectorÖĞÔªËØµÄÀàĞÍÒ»ÖÂ  
 {
@@ -30,23 +30,23 @@ bool SortBySecondNorm(const knnTrainNode &v1, const knnTrainNode &v2)//×¢Òâ£º±¾º
 }
 bool inInWindow(double *pt, double *tr){
 	for (int i = 0; i < Patterns; i++){
-		if (abs(pt[i] - tr[i]) >( 1 / (double)WindowSize)) return false;
+		if (abs(pt[i] - tr[i]) >( 0.5 / (double)WindowSize)) return false;
 	}
 	return true;
 }
-int knn_parzen(double* pt, double trainSet[][Patterns], int* lables){
+int knn_parzen(double* pt, double trainSet[][Patterns], int* labels){
 	vector<knnTrainNode> trains;
 	int parzen[LetterNum];
 	memset(parzen, 0, sizeof(parzen));
 	for (int i = 0; i < KNN_N; i++){
 		//parzen
 		if (inInWindow(pt,trainSet[i])){
-			parzen[lables[i]]++;
+			parzen[labels[i]]++;
 		}
 		//knn
 		knnTrainNode temp;
 		temp.secondNorm = getSecondNorm(pt, trainSet[i]);
-		temp.lable = lables[i];
+		temp.label = labels[i];
 		trains.push_back(temp);
 	}
 #if ShowSecondNormal
@@ -65,21 +65,21 @@ int knn_parzen(double* pt, double trainSet[][Patterns], int* lables){
 	}
 	cout << endl << endl;
 #endif
-	int lableNum[LetterNum];
-	memset(lableNum, 0, sizeof(lableNum));
+	int labelNum[LetterNum];
+	memset(labelNum, 0, sizeof(labelNum));
 	//Í³¼ÆÇ°K¸öµÚ¶ş·¶ÊıµÄ±êÇ©
 	for (int i = 0; i < K; i++){
-		lableNum[trains[i].lable]++;
+		labelNum[trains[i].label]++;
 	}
 	//ÕÒµ½×î¸ßÆµÂÊµÄ±êÇ©
 	int maxnum = 0;
 	int result = 0;
 	for (int i = 1; i < LetterNum; i++){
 #if ShowTopK
-		cout << i << ":" << lableNum[i]<<" ";
+		cout << i << ":" << labelNum[i]<<" ";
 		if (i % 10 == 9) cout << endl;
 #endif
-		if (lableNum[i]>lableNum[maxnum]) maxnum = i;
+		if (labelNum[i]>labelNum[maxnum]) maxnum = i;
 	}
 #if ShowTopK
 	//¼ÆËã×Ö·û
@@ -114,7 +114,7 @@ long long calParzenPosition(double* pt){
 	return pos;
 }
 
-void generateParzenArgs(double trainSet[][Patterns],int* lables){
+void generateParzenArgs(double trainSet[][Patterns],int* labels){
 	memset(priorProbability, 0, sizeof(priorProbability));
 	for (int i=0;i<Patterns;i++){
 		pows[i]=  pow(WindowSize, i);
@@ -148,25 +148,21 @@ void generateParzenArgs(double trainSet[][Patterns],int* lables){
 #endif
 		//¶ÁÈëÑµÁ·¼¯
 		for (int i = 0; i < TrainSize; i++){
-#if ShowProcess
-			if (i%2000==0)
-				cout << "Trainset Parzen "<< i << endl;
-#endif
 			long long pos = calParzenPosition(trainSet[i]);
 			if (parzenProbability[pos]){
-				parzenProbability[pos][lables[i]]++;
+				parzenProbability[pos][labels[i]]++;
 			}
 			else{
 				double *temp = (double*)malloc(LetterNum*sizeof(double));
 				memset(temp, 0, LetterNum*sizeof(double));
 				parzenProbability[pos] = temp;
-				parzenProbability[pos][lables[i]]++;
+				parzenProbability[pos][labels[i]]++;
 			}
-			priorProbability[lables[i]]++;
+			priorProbability[labels[i]]++;
 #if ShowProcess
 			int dot = (i + 1) / rate;;
 			if ((i + 1) % rate == 0){
-				printf("Testing Accuracy");
+				printf("Train parzen Args");
 				for (int k = 0; k < dot; k++){
 					printf(".");
 				}
@@ -203,7 +199,7 @@ void generateParzenArgs(double trainSet[][Patterns],int* lables){
 char parzen(double* pt){
 	long long pos = calParzenPosition(pt);
 	double maxProbility = 0;
-	int maxLable = 0;
+	int maxLabel = 0;
 	if (parzenProbability[pos]){
 		for (int i = 0; i < LetterNum; i++){
 			double probility = parzenProbability[pos][i] * priorProbability[i];
@@ -212,14 +208,14 @@ char parzen(double* pt){
 #endif
 			if (probility>maxProbility){
 				maxProbility = probility;
-				maxLable = i;
+				maxLabel = i;
 			}
 		}
 	}
 #if showParzen
-	cout << maxLable << " " << characters[maxLable]<<endl;
+	cout << maxLabel << " " << characters[maxLabel]<<endl;
 #endif
-	return characters[maxLable];
+	return characters[maxLabel];
 }
 
 void freeMap(){

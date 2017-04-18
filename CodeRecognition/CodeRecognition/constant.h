@@ -1,5 +1,5 @@
 //训练参数控制
-#define K 100              //KNN的K，必须小于KNN_N
+#define K 300              //KNN的K，必须小于KNN_N
 #define KNN_N     20000    //KNN使用的训练集,必须小于TrainSize
 #define TrainSize 300000    //训练样本的个数，必须为4的倍数
 #define TestSize 10        //显示的测试样本的个数
@@ -9,7 +9,7 @@
 #define ZScore 0	    //新数据=（原数据-均值）/标准差
 #define MinMax 1       //新数据=（原数据-极小值）/（极大值-极小值）
 #define Decimal_Scaling // x'=x/(10*j)
-#define WindowSize 20    //parzen窗的窗口大小
+#define WindowSize 40    //parzen窗的窗口大小
 
 //验证码相关
 #define Lines 0		  //是否加入干扰线

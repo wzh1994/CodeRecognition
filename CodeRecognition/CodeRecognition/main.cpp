@@ -15,11 +15,11 @@ void generateCode(char *code, Mat& codeShow, Mat& identifyingCode);
 void generateCode(char *code, Mat& identifyingCode);
 int splitCode(Mat& grayCode, Mat& identifyingCode, double pt[][Patterns],Mat& letter1, Mat& letter2, Mat& letter3, Mat& letter4);
 int splitCode(Mat& grayCode, double pt[][Patterns]);
-int getLetter(double* pt, double trainSet[][Patterns], int* lables, PTArgs ptArg);
+int getLetter(double* pt, double trainSet[][Patterns], int* labels, PTArgs ptArg);
 void preProcess(Mat& image, Mat& gray,Mat& output);
 void preProcess(Mat& image, Mat& gray);
-void generateTrainSet(double trainSet[][Patterns], int* lables, PTArgs ptArg);
-void generateParzenArgs(double trainSet[][Patterns], int* lables);
+void generateTrainSet(double trainSet[][Patterns], int* labels, PTArgs ptArg);
+void generateParzenArgs(double trainSet[][Patterns], int* labels);
 void showPatterns(double* pt);
 void makeTitle(Mat& Background);
 void freeMap();
@@ -28,14 +28,14 @@ int main(){
 	/*生成训练集合*/
 #if NOFRESH
 	double trainSet[KNN_N][Patterns]; //训练集
-	int lables[KNN_N];				  //标签集
+	int labels[KNN_N];				  //标签集
 #else
 	double trainSet[TrainSize][Patterns]; //训练集
-	int lables[TrainSize];				  //标签集
+	int labels[TrainSize];				  //标签集
 #endif
-	PTArgsNode ptArg;
-	generateTrainSet(trainSet, lables, &ptArg);
-	generateParzenArgs(trainSet, lables);
+	PTArgsNode ptArg;	  //特征的参数,用于标准化，属性详见此结构的定义
+	generateTrainSet(trainSet, labels, &ptArg);
+	generateParzenArgs(trainSet, labels);
 
 #if DOTEST
 	/*生成测试集*/
@@ -80,10 +80,10 @@ int main(){
 		Mat imageRIO7;
 		ADDRIO(imageRIO7, Background, code_width, n, start);
 		int result[4];
-		result[0] = getLetter(pt[0], trainSet, lables, &ptArg);
-		result[1] = getLetter(pt[1], trainSet, lables, &ptArg);
-		result[2] = getLetter(pt[2], trainSet, lables, &ptArg);
-		result[3] = getLetter(pt[3], trainSet, lables, &ptArg);
+		result[0] = getLetter(pt[0], trainSet, labels, &ptArg);
+		result[1] = getLetter(pt[1], trainSet, labels, &ptArg);
+		result[2] = getLetter(pt[2], trainSet, labels, &ptArg);
+		result[3] = getLetter(pt[3], trainSet, labels, &ptArg);
 		char resultLetter[15];
 		for (int i = 0; i < 4; i++){
 			resultLetter[i] = (result[i] >> 16);
@@ -126,10 +126,10 @@ int main(){
 			continue;
 		}
 		int result[4];
-		result[0] = getLetter(pt[0], trainSet, lables, &ptArg);
-		result[1] = getLetter(pt[1], trainSet, lables, &ptArg);
-		result[2] = getLetter(pt[2], trainSet, lables, &ptArg);
-		result[3] = getLetter(pt[3], trainSet, lables, &ptArg);
+		result[0] = getLetter(pt[0], trainSet, labels, &ptArg);
+		result[1] = getLetter(pt[1], trainSet, labels, &ptArg);
+		result[2] = getLetter(pt[2], trainSet, labels, &ptArg);
+		result[3] = getLetter(pt[3], trainSet, labels, &ptArg);
 		char resultLetter[15];
 		for (int i = 0; i < 4; i++){
 			resultLetter[i] = (result[i] >> 16);
